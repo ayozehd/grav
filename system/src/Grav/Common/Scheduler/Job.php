@@ -286,31 +286,37 @@ class Job
             return false;
         }
 
-        // Write lock file if necessary
-        $this->createLockFile();
+        try {
+            // Write lock file if necessary
+            $this->createLockFile();
 
-        // Call before if required
-        if (is_callable($this->before)) {
-            call_user_func($this->before);
-        }
-
-        // If command is callable...
-        if (is_callable($this->command)) {
-            $this->output = $this->exec();
-        } else {
-            $args = \is_string($this->args) ? explode(' ', $this->args) : $this->args;
-            $command = array_merge([$this->command], $args);
-            $process = new Process($command);
-
-            $this->process = $process;
-
-            if ($this->runInBackground()) {
-                $process->start();
-            } else {
-                $process->run();
-                $this->finalize();
+            // Call before if required
+            if (is_callable($this->before)) {
+                call_user_func($this->before);
             }
+
+            // If command is callable...
+            if (is_callable($this->command)) {
+                $this->output = $this->exec();
+            } else {
+                $args = \is_string($this->args) ? explode(' ', $this->args) : $this->args;
+                $command = array_merge([$this->command], $args);
+                $process = new Process($command);
+
+                $this->process = $process;
+
+                if ($this->runInBackground()) {
+                    $process->start();
+                } else {
+                    $process->run();
+                }
+            }
+
+        } catch (\RuntimeException $e) {
+            $this->successful = false
         }
+
+        $this->finalize();
 
         return true;
     }
